@@ -18,7 +18,7 @@ class Sprite {
     this.canvas.style.position = 'fixed'
     this.canvas.style.zIndex = 9000
     this.image.onload = () => {
-      this.canvas.getContext('2d').drawImage(this.image, -20, -10)
+      this.canvas.getContext('2d').drawImage(this.image, -30, -10)
     };
 
     this.playing = false
@@ -50,7 +50,7 @@ class Sprite {
     while (this.playing) {
       this.animate(frames.x, frames.y)
       frames = seq.next()
-      await sleep(85)
+      await sleep(seq.fps)
     }
   }
 
@@ -76,40 +76,59 @@ class Sprite {
 }
 
 class Sequence {
-  constructor(xStart, yLine, nextSpriteX, xMax) {
-    this.xStart = xStart
-    this.lineY = yLine
-    this.nextSpriteX = nextSpriteX
-    this.xMax = xMax
+  constructor(opt) {
+    this.xStart = opt.xStart
+    this.yOffset = opt.yOffset
+    this.nextSpriteX = opt.nextSpriteX
+    this.xEnd = opt.xEnd
+    //NOTE: fps isn't really a true fps, I'm not sure what to call it though.
+    this.fps = opt.fps
 
-    this.x = xStart
-    this.y = yLine
+    this.x = opt.xStart
+    this.y = opt.yLine
   }
 
   next() {
-    if (Math.sign(this.xMax) == '-1') 
+    console.log(this.x)
+    let frames = {
+      x: this.x,
+      y: this.yOffset
+    }
+    this.x += this.nextSpriteX
+    if (Math.sign(this.xEnd) == '-1') 
     {
-      if (this.x <= this.xMax)
+      if (this.x <= this.xEnd)
         this.x = this.xStart
     }
-    else if (this.x >= this.xMax){
+    else if (this.x >= this.xEnd){
       this.x = this.xStart
     }
 
-    this.x += this.nextSpriteX
-    return {
-      x: this.x,
-      y: this.lineY
-    }
+    return frames
   }
 }
 
-var jotaro = new Sprite('../dist/sprites/jotaro.png', {width: 100, height: 125});
-var run = new Sequence(-20, -10, -125, -800)
+var jotaro = new Sprite('../dist/sprites/jotaro_run.png', {width: 97, height: 97});
+var run = new Sequence({
+  xStart: 0,
+  xEnd: -776,
+  nextSpriteX: -97,
+  yOffset: 0,
+  fps: 100
+})
+
+var idle = new Sequence({
+  xStart: -520,
+  xEnd: -780,
+  nextSpriteX: -130,
+  yOffset: -1040,
+  fps: 250
+})
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
 
   jotaro.attach('jotaro')
+  // jotaro.play(idle)
   jotaro.play(run)
-
 })
