@@ -3,17 +3,34 @@ class Jotaro {
     this.canvas = canvas
 
     this.sprite = new Sprite(
-      '../dist/sprites/jotaro_run.png',
+      '../dist/sprites/jotaro_new.png',
       {width: 97, height: 97}
     );
 
     this.animations = {
+      idle: new SpriteAnimation({
+        xStart: 873,
+        xEnd: 1358,
+        nextSpriteX: 97,
+        yOffset: 0,
+        fps: 200,
+        loop: true
+      }),
       run: new SpriteAnimation({
         xStart: 0,
         xEnd: 776,
         nextSpriteX: 97,
         yOffset: 0,
-        fps: 75
+        fps: 75,
+        loop: true
+      }),
+      punch1: new SpriteAnimation({
+        xStart: 1455,
+        xEnd: 1649,
+        nextSpriteX: 97,
+        yOffset: 0,
+        fps: 50,
+        loop: false
       })
     }
   }
@@ -24,6 +41,25 @@ class Jotaro {
 
   run() {
     this.sprite.play(this.animations.run, this.canvas)
+  }
+
+  idle() {
+    this.sprite.play(this.animations.idle, this.canvas)
+  }
+
+  punch() {
+    this.sprite.play(this.animations.punch1, this.canvas)
+  }
+
+  async bonkImage(imgEle) {
+    this.run()
+    let distance = imgEle.x - this.sprite.dx
+    for(let i = 0; i < distance; i+=10) {
+      this.sprite.dx = i
+      await sleep(25)
+    }
+    // Now ora ora attack
+    alert('ORA ORA ORA ORA ORA')
   }
 
   stop() {
@@ -71,6 +107,7 @@ class Sprite {
   async play(animation, ctx) {
     this.stop()
     let frames = animation.next()
+    let initX = frames.x
     this.playing = true;
     while (this.playing) {
       this.sx = frames.x
@@ -79,6 +116,8 @@ class Sprite {
       this.render(ctx)
       frames = animation.next()
       await sleep(animation.fps)
+      if(!animation.loop && this.sx == initX)
+        break;
     }
   }
 
@@ -98,6 +137,7 @@ class SpriteAnimation {
 
     this.x = opt.xStart
     this.y = opt.yLine
+    this.loop = opt.loop
   }
 
   next() {
@@ -152,13 +192,15 @@ class DefaultCanvas {
 
 var defaultCanvas = new DefaultCanvas()
 var jotaro = new Jotaro(defaultCanvas.get());
+var img
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
+  console.log(img)
+  img = document.getElementById('cat')
 
   defaultCanvas.attach('jotaro')
-  jotaro.run()
-
-
+  jotaro.idle()
+  // jotaro.run()
 })
 
  async function asdf(){
