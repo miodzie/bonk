@@ -15,9 +15,13 @@ class Sprite {
     this.canvas.width = dimensions.width
     this.canvas.height = dimensions.height
     this.canvas.id = 'randomly-generated-i-guess'
+    this.canvas.style.position = 'fixed'
+    this.canvas.style.zIndex = 9000
     this.image.onload = () => {
       this.canvas.getContext('2d').drawImage(this.image, -20, -10)
     };
+
+    this.playing = false
   }
 
   attach(id) {
@@ -29,7 +33,7 @@ class Sprite {
     ele.appendChild(this.canvas);
   }
 
-  position(x, y) {
+  animate(x, y) {
     if (!this.canvas) {
       console.error('Sprite: Canvas is null.')
       return
@@ -40,12 +44,34 @@ class Sprite {
   }
 
   async play(seq) {
+    this.stop()
     let frames = seq.next()
-    for (;;) {
-      this.position(frames.x, frames.y)
+    this.playing = true;
+    while (this.playing) {
+      this.animate(frames.x, frames.y)
       frames = seq.next()
       await sleep(85)
     }
+  }
+
+  stop() {
+    this.playing = false
+  }
+
+  move(x, y) {
+    let cX = parseInt(this.canvas.style.left)
+    let cY = parseInt(this.canvas.style.top)
+    if (!cX)
+      cX = 0
+    if (!cY)
+      cY = 0
+
+    this.pos(cX + x, cY + y)
+  }
+
+  pos(x, y) {
+    this.canvas.style.left = x + "px"
+    this.canvas.style.top = y + "px"
   }
 }
 
@@ -85,4 +111,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   jotaro.attach('jotaro')
   jotaro.play(run)
+
 })
