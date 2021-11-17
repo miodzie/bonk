@@ -1,3 +1,36 @@
+class Jotaro {
+  constructor(canvas) {
+    this.canvas = canvas
+
+    this.sprite = new Sprite(
+      '../dist/sprites/jotaro_run.png',
+      {width: 97, height: 97}
+    );
+
+    this.animations = {
+      run: new SpriteAnimation({
+        xStart: 0,
+        xEnd: 776,
+        nextSpriteX: 97,
+        yOffset: 0,
+        fps: 75
+      })
+    }
+  }
+
+  render(canvas) {
+    this.sprite.render(canvas)
+  }
+
+  run() {
+    this.sprite.play(this.animations.run, this.canvas)
+  }
+
+  stop() {
+    this.sprite.stop()
+  }
+}
+
 class Sprite {
   // imgSrc = path to image file.
   // dimensions = {width: int, height: int}
@@ -6,61 +39,46 @@ class Sprite {
 
     this.dimensions = dimensions
 
+    this.sx = 0
+    this.sy = 0
+
+    this.dx = 0
+    this.dy = 0
+
     this.image = new Image()
     this.image.src = imgSrc
-
-    this.canvas = document.createElement('canvas')
-    this.canvas.width = window.innerWidth
-    this.canvas.height = window.innerHeight
-    this.canvas.id = 'randomly-generated-i-guess'
-    this.canvas.style.position = 'fixed'
-    this.canvas.style.zIndex = 9000
-    this.image.onload = () => {
-      this.canvas.getContext('2d').drawImage(this.image, -30, -10)
-    };
 
     this.playing = false
   }
 
-  attach(id) {
-    let ele = document.getElementById(id)
-    if (!ele) {
-      console.error(`Sprite: Element not found with id: ${id}`)
-      return
-    } 
-    ele.appendChild(this.canvas);
-  }
-
-  animate(sx, sy, dx, dy) {
-    if (!this.canvas) {
-      console.error('Sprite: Canvas is null.')
-      return
-    }
-    let ctx = this.canvas.getContext('2d')
-    ctx.clearRect(0,0, this.canvas.width, this.canvas.height)
-    this.canvas.getContext('2d').drawImage(
+  render(canvas) {
+    let ctx = canvas.getContext('2d')
+    ctx.clearRect(0,0, canvas.width, canvas.height)
+    ctx.drawImage(
       this.image,
       // sx, sy - we would change sx to change the active sprite
-      sx, sy,
+      this.sx, this.sy,
       // sWidth, sHeight (the sprite animation size)
       this.dimensions.width, this.dimensions.height,
       // we would use dx to move the sprite horizontal across the canvas.
       // dx, dy
-      dx, dy,
+      this.dx, this.dy,
       // dWidth, dHeight (the sprite animation size)
       this.dimensions.width, this.dimensions.height,
     )
   }
 
-  async play(seq) {
-    this.potato = 0
+  async play(animation, ctx) {
     this.stop()
-    let frames = seq.next()
+    let frames = animation.next()
     this.playing = true;
     while (this.playing) {
-      this.animate(frames.x, frames.y, this.potato, 0)
-      frames = seq.next()
-      await sleep(seq.fps)
+      this.sx = frames.x
+      this.sy = frames.y
+      // TODO: How do I handle rendering?
+      this.render(ctx)
+      frames = animation.next()
+      await sleep(animation.fps)
     }
   }
 
@@ -69,7 +87,7 @@ class Sprite {
   }
 }
 
-class Sequence {
+class SpriteAnimation {
   constructor(opt) {
     this.xStart = opt.xStart
     this.yOffset = opt.yOffset
@@ -88,50 +106,69 @@ class Sequence {
       y: this.yOffset
     }
     this.x += this.nextSpriteX
-    if (Math.sign(this.xEnd) == '-1') 
-    {
-      if (this.x <= this.xEnd)
+
+    if (this.xEnd < 0 && this.x <= this.xEnd) 
         this.x = this.xStart
-    }
-    else if (this.x >= this.xEnd){
+    else if (this.x >= this.xEnd)
       this.x = this.xStart
-    }
 
     return frames
   }
 }
 
-var jotaro = new Sprite('../dist/sprites/jotaro_run.png', {width: 97, height: 97});
-var run = new Sequence({
-  xStart: 0,
-  xEnd: 776,
-  nextSpriteX: 97,
-  yOffset: 0,
-  fps: 75
-})
 
+class DefaultCanvas {
+  constructor() {
+    this.canvas = document.createElement('canvas')
+    this.canvas.width = window.innerWidth
+    this.canvas.height = window.innerHeight
+    this.canvas.id = 'randomly-generated-i-guess'
+    this.canvas.style.position = 'fixed'
+    this.canvas.style.top = 0
+    this.canvas.style.right = 0
+    this.canvas.style.bottom = 0
+    this.canvas.style.left = 0
+    this.canvas.style.zIndex = 9000
+  }
+
+  attach(id) {
+    let ele = document.getElementById(id)
+    if (!ele) {
+      console.error(`Canvas: Element not found with id: ${id}`)
+      return
+    } 
+    ele.appendChild(this.canvas);
+  }
+
+  get() {
+    return this.canvas
+  }
+
+  clear() {
+    let ctx = this.canvas.getContext('2d')
+    ctx.clearRect(0,0, this.canvas.width, this.canvas.height)
+  }
+}
+
+var defaultCanvas = new DefaultCanvas()
+var jotaro = new Jotaro(defaultCanvas.get());
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
 
-  jotaro.attach('jotaro')
-  // jotaro.play(idle)
-  jotaro.play(run)
-
+  defaultCanvas.attach('jotaro')
+  jotaro.run()
 
 
 })
-
-
-
 
  async function asdf(){
    let acceleration = 1
    let speed = 1
     for (;;) {
       jotaro.potato += speed
-      if (speed < 10) {
+      if (speed < 7) {
         speed += acceleration
       }
-      await sleep(50)
+      await sleep(30)
     }
 }
