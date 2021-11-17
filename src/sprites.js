@@ -1,7 +1,5 @@
 class Jotaro {
-  constructor(canvas) {
-    this.canvas = canvas
-
+  constructor() {
     this.sprite = new Sprite(
       '../dist/sprites/jotaro_new.png',
       {width: 97, height: 97}
@@ -13,7 +11,7 @@ class Jotaro {
         xEnd: 1358,
         nextSpriteX: 97,
         yOffset: 0,
-        fps: 200,
+        fpsBuffer: 7,
         loop: true
       }),
       run: new SpriteAnimation({
@@ -21,7 +19,7 @@ class Jotaro {
         xEnd: 776,
         nextSpriteX: 97,
         yOffset: 0,
-        fps: 75,
+        fpsBuffer: 1,
         loop: true
       }),
       punch1: new SpriteAnimation({
@@ -29,28 +27,32 @@ class Jotaro {
         xEnd: 1649,
         nextSpriteX: 97,
         yOffset: 0,
-        fps: 50,
+        fpsBuffer: 2,
         loop: false
       })
     }
   }
 
   render(canvas) {
+    if(!this.sprite.animation)
+      return
+    this.sprite.next()
     this.sprite.render(canvas)
   }
 
   run() {
-    this.sprite.play(this.animations.run, this.canvas)
+    this.sprite.setAnimation(this.animations.run)
   }
 
   idle() {
-    this.sprite.play(this.animations.idle, this.canvas)
+    this.sprite.setAnimation(this.animations.idle)
   }
 
   punch() {
-    this.sprite.play(this.animations.punch1, this.canvas)
+    this.sprite.setAnimation(this.animations.punch1)
   }
 
+  // TODO: uh
   async bonkImage(imgEle) {
     this.run()
     let distance = imgEle.x - this.sprite.dx
@@ -59,11 +61,8 @@ class Jotaro {
       await sleep(25)
     }
     // Now ora ora attack
+    this.punch()
     alert('ORA ORA ORA ORA ORA')
-  }
-
-  stop() {
-    this.sprite.stop()
   }
 }
 
@@ -83,13 +82,10 @@ class Sprite {
 
     this.image = new Image()
     this.image.src = imgSrc
-
-    this.playing = false
   }
 
   render(canvas) {
     let ctx = canvas.getContext('2d')
-    ctx.clearRect(0,0, canvas.width, canvas.height)
     ctx.drawImage(
       this.image,
       // sx, sy - we would change sx to change the active sprite
@@ -104,25 +100,14 @@ class Sprite {
     )
   }
 
-  async play(animation, ctx) {
-    this.stop()
-    let frames = animation.next()
-    let initX = frames.x
-    this.playing = true;
-    while (this.playing) {
-      this.sx = frames.x
-      this.sy = frames.y
-      // TODO: How do I handle rendering?
-      this.render(ctx)
-      frames = animation.next()
-      await sleep(animation.fps)
-      if(!animation.loop && this.sx == initX)
-        break;
-    }
+  setAnimation(animation) {
+    this.animation = animation
   }
 
-  stop() {
-    this.playing = false
+  next() {
+    let frames = this.animation.next()
+    this.sx = frames.x
+    this.sy = frames.y
   }
 }
 
@@ -132,8 +117,9 @@ class SpriteAnimation {
     this.yOffset = opt.yOffset
     this.nextSpriteX = opt.nextSpriteX
     this.xEnd = opt.xEnd
-    //NOTE: fps isn't really a true fps, I'm not sure what to call it though.
-    this.fps = opt.fps
+    this.fpsBuffer = opt.fpsBuffer
+
+    this.buffer = 0
 
     this.x = opt.xStart
     this.y = opt.yLine
@@ -145,6 +131,12 @@ class SpriteAnimation {
       x: this.x,
       y: this.yOffset
     }
+
+    if (this.buffer <= this.fpsBuffer) {
+      this.buffer++
+      return frames
+    }
+
     this.x += this.nextSpriteX
 
     if (this.xEnd < 0 && this.x <= this.xEnd) 
@@ -152,13 +144,15 @@ class SpriteAnimation {
     else if (this.x >= this.xEnd)
       this.x = this.xStart
 
+      this.buffer = 0 
+
     return frames
   }
 }
 
 
 class DefaultCanvas {
-  constructor() {
+  constructor(sprites = []) {
     this.canvas = document.createElement('canvas')
     this.canvas.width = window.innerWidth
     this.canvas.height = window.innerHeight
@@ -169,6 +163,12 @@ class DefaultCanvas {
     this.canvas.style.bottom = 0
     this.canvas.style.left = 0
     this.canvas.style.zIndex = 9000
+
+    this.sprites = sprites
+  }
+
+  addSprite(sprite) {
+    this.sprites.push(sprite)
   }
 
   attach(id) {
@@ -178,6 +178,22 @@ class DefaultCanvas {
       return
     } 
     ele.appendChild(this.canvas);
+  }
+
+
+  render() {
+    let ctx = this.canvas.getContext('2d')
+    ctx.clearRect(0,0, this.canvas.width, this.canvas.height)
+    this.sprites.forEach((sprite) => {
+      sprite.render(this.canvas)
+    })
+  }
+
+  async loop() {
+    for(;;) {
+      this.render()
+      await sleep(25)
+    }
   }
 
   get() {
@@ -191,7 +207,8 @@ class DefaultCanvas {
 }
 
 var defaultCanvas = new DefaultCanvas()
-var jotaro = new Jotaro(defaultCanvas.get());
+var jotaro = new Jotaro();
+defaultCanvas.addSprite(jotaro)
 var img
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
@@ -199,8 +216,8 @@ document.addEventListener('DOMContentLoaded', function() {
   img = document.getElementById('cat')
 
   defaultCanvas.attach('jotaro')
+  defaultCanvas.loop()
   jotaro.idle()
-  // jotaro.run()
 })
 
  async function asdf(){
