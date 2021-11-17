@@ -2,7 +2,9 @@ const path = require("path");
 
 module.exports = {
     entry: {
-      content: "./src/content.js"
+      helpers: "./src/helpers.js",
+      content: "./src/content.js",
+      sprites: "./src/sprites.js"
         // background: "./src/background.js",
         // popup: "./popup/nohorny.js"
     },

@@ -1,7 +1,12 @@
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 class Jotaro {
   constructor() {
+    // ../dist/sprites/jotaro_new.png
     this.sprite = new Sprite(
-      '../dist/sprites/jotaro_new.png',
+      browser.extension.getURL('sprites/jotaro_new.png'),
       {width: 97, height: 97}
     );
 
@@ -31,12 +36,14 @@ class Jotaro {
         loop: false
       })
     }
+
+    this.sprite.setAnimation(this.animations.idle)
   }
 
   render(canvas) {
     if(!this.sprite.animation)
       return
-    this.sprite.next()
+    this.sprite.nextFrame()
     this.sprite.render(canvas)
   }
 
@@ -48,21 +55,30 @@ class Jotaro {
     this.sprite.setAnimation(this.animations.idle)
   }
 
-  punch() {
+  async punch(forever = false) {
     this.sprite.setAnimation(this.animations.punch1)
+    if(!forever) {
+      //TODO: this is hacky, bound for trouble later.
+      await sleep(200)
+      this.idle()
+    }
   }
 
   // TODO: uh
   async bonkImage(imgEle) {
     this.run()
-    let distance = imgEle.x - this.sprite.dx
+    let distance = imgEle.x - this.sprite.dx - (imgEle.x * .10)
     for(let i = 0; i < distance; i+=10) {
       this.sprite.dx = i
       await sleep(25)
     }
     // Now ora ora attack
-    this.punch()
     alert('ORA ORA ORA ORA ORA')
+    this.punch(true)
+    await sleep(100)
+    // TODO: kill le image
+    imgEle.style.backgroundImage = new URL(imgEle.src)
+    imgEle.style.boxShadow = "inset 0 0 99999px rgba(0, 120, 255, 0.5);"
   }
 }
 
@@ -104,8 +120,8 @@ class Sprite {
     this.animation = animation
   }
 
-  next() {
-    let frames = this.animation.next()
+  nextFrame() {
+    let frames = this.animation.nextFrame()
     this.sx = frames.x
     this.sy = frames.y
   }
@@ -126,7 +142,7 @@ class SpriteAnimation {
     this.loop = opt.loop
   }
 
-  next() {
+  nextFrame() {
     let frames = {
       x: this.x,
       y: this.yOffset
@@ -171,10 +187,9 @@ class DefaultCanvas {
     this.sprites.push(sprite)
   }
 
-  attach(id) {
-    let ele = document.getElementById(id)
+  attach(ele) {
     if (!ele) {
-      console.error(`Canvas: Element not found with id: ${id}`)
+      console.error('given element was null')
       return
     } 
     ele.appendChild(this.canvas);
@@ -215,9 +230,13 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log(img)
   img = document.getElementById('cat')
 
-  defaultCanvas.attach('jotaro')
+  defaultCanvas.attach(document.body)
   defaultCanvas.loop()
   jotaro.idle()
+
+  img = document.getElementsByClassName('mzp-c-split-media-asset')[1]
+
+  jotaro.bonkImage(img)
 })
 
  async function asdf(){

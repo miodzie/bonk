@@ -1,1 +1,2 @@
-alert('BONK')
+require('./sprites.js')
+
