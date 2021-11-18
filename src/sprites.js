@@ -246,20 +246,41 @@ class DefaultCanvas {
   }
 }
 
-function makeImgBonkable(ele) {
-  ele.style.cursor = 'pointer'
-  ele.addEventListener('click', (e) => {
-    jotaro.bonkImage(ele)
-    // // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
-    // var explosion = new Explosion();
-    // defaultCanvas.addSprite(explosion)
-    // explosion.sprite.dx = e.x - explosion.sprite.width / 2
-    // explosion.sprite.dy = e.y - explosion.sprite.height / 2
-    // // TODO: Clean up explosion object afterwards.
-    // explosion.explode()
-    // var bonk = new Audio('../dist/sounds/bonk.ogg')
-    // bonk.play()
-  });
+class Cheems {
+  constructor() {
+    this.sprite = new Sprite('../dist/sprites/cheems.png', 205, 137)
+
+    this.animations = {
+      idle: new SpriteAnimation({
+        xStart: 0,
+        xEnd: 205,
+        nextSpriteX: 0,
+        yOffset: 0,
+        fpsBuffer: 7,
+      }),
+      bonk: new SpriteAnimation({
+        xStart: 205,
+        xEnd: 411,
+        nextSpriteX: 205,
+        yOffset: 0,
+        fpsBuffer: 2,
+        onComplete: () => { this.sprite.animating = false }
+      })
+    }
+    this.sprite.setAnimation(this.animations.idle)
+  }
+
+  render(canvas) {
+    if (!this.sprite.animation)
+      return
+    this.sprite.render(canvas)
+  }
+
+  bonk() {
+    let bonk = new Audio('../dist/sounds/bonk.ogg')
+    bonk.play()
+    this.sprite.setAnimation(this.animations.bonk, () => { this.sprite.setAnimation(null) })
+  }
 }
 
 class Explosion {
@@ -290,7 +311,35 @@ class Explosion {
   }
 }
 
+function NOHORNY(ele) {
+  ele.style.cursor = 'pointer'
+  ele.addEventListener('click', (e) => {
+    cheems.sprite.dx = ele.x - (ele.x * .15)
+    cheems.sprite.dy = ele.y - (ele.y * .20)
+    cheems.bonk()
+    let explosion = new Explosion();
+    defaultCanvas.addSprite(explosion)
+    explosion.sprite.dx = ele.x
+    explosion.sprite.dy = ele.y
+    explosion.explode().then(setTimeout(() => 1+1, 200))
+    // jotaro.bonkImage(ele)
+    // // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
+    // var explosion = new Explosion();
+    // defaultCanvas.addSprite(explosion)
+    // explosion.sprite.dx = e.x - explosion.sprite.width / 2
+    // explosion.sprite.dy = e.y - explosion.sprite.height / 2
+    // // TODO: Clean up explosion object afterwards.
+    // explosion.explode()
+    // var bonk = new Audio('../dist/sounds/bonk.ogg')
+    // bonk.play()
+  });
+}
+
+
 var defaultCanvas = new DefaultCanvas()
+let cheems = new Cheems()
+defaultCanvas.addSprite(cheems)
+
 var jotaro = new Jotaro();
 defaultCanvas.addSprite(jotaro)
 var img
@@ -304,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
   jotaro.idle()
 
   img = document.getElementById('cat')
-  makeImgBonkable(img)
+  NOHORNY(img)
   console.log(img)
 
   // jotaro.bonkImage(img)
