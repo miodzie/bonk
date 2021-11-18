@@ -4,10 +4,12 @@ function sleep(ms) {
 
 class Jotaro {
   constructor() {
+    // TODO: move to a resource class that loads settings from json?
     // ../dist/sprites/jotaro_new.png
+    // browser.extension.getURL('sprites/jotaro_new.png')
     this.sprite = new Sprite(
-      browser.extension.getURL('sprites/jotaro_new.png'),
-      {width: 97, height: 97}
+      '../dist/sprites/jotaro_new.png',
+      { width: 97, height: 97 }
     );
 
     this.animations = {
@@ -17,7 +19,6 @@ class Jotaro {
         nextSpriteX: 97,
         yOffset: 0,
         fpsBuffer: 7,
-        loop: true
       }),
       run: new SpriteAnimation({
         xStart: 0,
@@ -25,7 +26,6 @@ class Jotaro {
         nextSpriteX: 97,
         yOffset: 0,
         fpsBuffer: 1,
-        loop: true
       }),
       punch1: new SpriteAnimation({
         xStart: 1455,
@@ -33,7 +33,9 @@ class Jotaro {
         nextSpriteX: 97,
         yOffset: 0,
         fpsBuffer: 2,
-        loop: false
+        onComplete: () => {
+          this.idle()
+        }
       })
     }
 
@@ -41,9 +43,8 @@ class Jotaro {
   }
 
   render(canvas) {
-    if(!this.sprite.animation)
+    if (!this.sprite.animation)
       return
-    this.sprite.nextFrame()
     this.sprite.render(canvas)
   }
 
@@ -55,26 +56,21 @@ class Jotaro {
     this.sprite.setAnimation(this.animations.idle)
   }
 
-  async punch(forever = false) {
+  punch() {
     this.sprite.setAnimation(this.animations.punch1)
-    if(!forever) {
-      //TODO: this is hacky, bound for trouble later.
-      await sleep(200)
-      this.idle()
-    }
   }
 
   // TODO: uh
   async bonkImage(imgEle) {
     this.run()
     let distance = imgEle.x - this.sprite.dx - (imgEle.x * .10)
-    for(let i = 0; i < distance; i+=10) {
+    for (let i = 0; i < distance; i += 10) {
       this.sprite.dx = i
       await sleep(25)
     }
     // Now ora ora attack
-    alert('ORA ORA ORA ORA ORA')
-    this.punch(true)
+    // alert('ORA ORA ORA ORA ORA')
+    this.punch()
     await sleep(100)
     // TODO: kill le image
     imgEle.style.backgroundImage = new URL(imgEle.src)
@@ -98,9 +94,13 @@ class Sprite {
 
     this.image = new Image()
     this.image.src = imgSrc
+
+    this.animating = false
   }
 
   render(canvas) {
+    if (this.animating && this.animating != null)
+      this.nextFrame()
     let ctx = canvas.getContext('2d')
     ctx.drawImage(
       this.image,
@@ -116,8 +116,9 @@ class Sprite {
     )
   }
 
-  setAnimation(animation) {
+  setAnimation(animation, active = true) {
     this.animation = animation
+    this.animating = active
   }
 
   nextFrame() {
@@ -139,7 +140,7 @@ class SpriteAnimation {
 
     this.x = opt.xStart
     this.y = opt.yLine
-    this.loop = opt.loop
+    this.onComplete = opt.onComplete
   }
 
   nextFrame() {
@@ -155,14 +156,20 @@ class SpriteAnimation {
 
     this.x += this.nextSpriteX
 
-    if (this.xEnd < 0 && this.x <= this.xEnd) 
-        this.x = this.xStart
+    if (this.xEnd < 0 && this.x <= this.xEnd)
+      this.reset()
     else if (this.x >= this.xEnd)
-      this.x = this.xStart
+      this.reset()
 
-      this.buffer = 0 
+    this.buffer = 0
 
     return frames
+  }
+
+  reset() {
+      this.x = this.xStart
+      if(this.onComplete)
+        this.onComplete()
   }
 }
 
@@ -179,6 +186,7 @@ class DefaultCanvas {
     this.canvas.style.bottom = 0
     this.canvas.style.left = 0
     this.canvas.style.zIndex = 9000
+    this.canvas.style.pointerEvents = 'none'
 
     this.sprites = sprites
   }
@@ -191,21 +199,21 @@ class DefaultCanvas {
     if (!ele) {
       console.error('given element was null')
       return
-    } 
+    }
     ele.appendChild(this.canvas);
   }
 
 
   render() {
     let ctx = this.canvas.getContext('2d')
-    ctx.clearRect(0,0, this.canvas.width, this.canvas.height)
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.sprites.forEach((sprite) => {
       sprite.render(this.canvas)
     })
   }
 
   async loop() {
-    for(;;) {
+    for (; ;) {
       this.render()
       await sleep(25)
     }
@@ -217,13 +225,55 @@ class DefaultCanvas {
 
   clear() {
     let ctx = this.canvas.getContext('2d')
-    ctx.clearRect(0,0, this.canvas.width, this.canvas.height)
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+}
+
+function makeImgBonkable(ele) {
+  ele.style.cursor = 'pointer'
+  ele.addEventListener('click', (e) => {
+    // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
+    explosion.sprite.dx = e.x - explosion.sprite.dimensions.width / 2
+    explosion.sprite.dy = e.y - explosion.sprite.dimensions.height / 2
+    explosion.explode()
+    var bonk = new Audio('../dist/sounds/bonk.ogg')
+    bonk.play()
+  });
+}
+
+class Explosion {
+  constructor() {
+    this.sprite = new Sprite('../dist/sprites/explosion-edit.png', { width: 165, height: 165 })
+  }
+
+  render(canvas) {
+    if (!this.sprite.animation)
+      return
+    this.sprite.nextFrame()
+    this.sprite.render(canvas)
+  }
+
+  explode() {
+    this.sprite.setAnimation(
+      new SpriteAnimation({
+        xStart: 0,
+        xEnd: 990,
+        nextSpriteX: 165,
+        yOffset: 0,
+        fpsBuffer: 3,
+        onComplete: () => {
+          this.sprite.setAnimation(null)
+        }
+      })
+    )
   }
 }
 
 var defaultCanvas = new DefaultCanvas()
 var jotaro = new Jotaro();
+var explosion = new Explosion();
 defaultCanvas.addSprite(jotaro)
+defaultCanvas.addSprite(explosion)
 var img
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
@@ -234,19 +284,21 @@ document.addEventListener('DOMContentLoaded', function() {
   defaultCanvas.loop()
   jotaro.idle()
 
-  img = document.getElementsByClassName('mzp-c-split-media-asset')[1]
+  img = document.getElementById('cat')
+  makeImgBonkable(img)
+  console.log(img)
 
   jotaro.bonkImage(img)
 })
 
- async function asdf(){
-   let acceleration = 1
-   let speed = 1
-    for (;;) {
-      jotaro.potato += speed
-      if (speed < 7) {
-        speed += acceleration
-      }
-      await sleep(30)
+async function asdf() {
+  let acceleration = 1
+  let speed = 1
+  for (; ;) {
+    jotaro.potato += speed
+    if (speed < 7) {
+      speed += acceleration
     }
+    await sleep(30)
+  }
 }
