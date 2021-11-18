@@ -8,7 +8,7 @@ class Jotaro {
     // ../dist/sprites/jotaro_new.png
     // browser.extension.getURL('sprites/jotaro_new.png')
     this.sprite = new Sprite(
-      '../dist/sprites/jotaro_new.png',
+      browser.extension.getURL('sprites/jotaro_new.png'),
       97, 97
     );
 
@@ -62,7 +62,7 @@ class Jotaro {
 
   // TODO: uh
   async bonkImage(imgEle, canvas) {
-    var bonk = new Audio('../dist/sounds/yareyaredaze.ogg')
+    var bonk = new Audio(browser.extension.getURL('../dist/sounds/yareyaredaze.ogg'))
     bonk.play()
     await sleep(25)
     this.run()
@@ -74,7 +74,8 @@ class Jotaro {
 
     // オラオラオラオラオラオラオラオラオラオラオラオラっ！
     this.punch(() => { })
-    var ora = new Audio('../dist/sounds/ORA.ogg')
+
+    var ora = new Audio(browser.extension.getURL('../dist/sounds/ORA.ogg'))
     ora.addEventListener('ended', () => {
       let explosion = new Explosion();
       defaultCanvas.addSprite(explosion)
@@ -248,7 +249,7 @@ class DefaultCanvas {
 
 class Cheems {
   constructor() {
-    this.sprite = new Sprite('../dist/sprites/cheems.png', 205, 137)
+    this.sprite = new Sprite(browser.extension.getURL('sprites/cheems.png'), 205, 137)
 
     this.animations = {
       idle: new SpriteAnimation({
@@ -277,7 +278,7 @@ class Cheems {
   }
 
   bonk() {
-    let bonk = new Audio('../dist/sounds/bonk.ogg')
+    let bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
     bonk.play()
     this.sprite.setAnimation(this.animations.bonk, () => { this.sprite.setAnimation(null) })
   }
@@ -285,7 +286,7 @@ class Cheems {
 
 class Explosion {
   constructor() {
-    this.sprite = new Sprite('../dist/sprites/explosion-edit.png', 165, 165)
+    this.sprite = new Sprite(browser.extension.getURL('sprites/explosion-edit.png'), 165, 165)
   }
 
   render(canvas) {
@@ -314,14 +315,16 @@ class Explosion {
 function NOHORNY(ele) {
   ele.style.cursor = 'pointer'
   ele.addEventListener('click', (e) => {
-    cheems.sprite.dx = ele.x - (ele.x * .15)
-    cheems.sprite.dy = ele.y - (ele.y * .20)
+    let rect = ele.getBoundingClientRect()
+    cheems.sprite.dx = rect.left - (rect.top * .10)
+    cheems.sprite.dy = rect.top - (rect.top * .10)
     cheems.bonk()
     let explosion = new Explosion();
     defaultCanvas.addSprite(explosion)
-    explosion.sprite.dx = ele.x
-    explosion.sprite.dy = ele.y
-    explosion.explode().then(setTimeout(() => 1+1, 200))
+    explosion.sprite.dx = rect.left + 100
+    explosion.sprite.dy = rect.top 
+    console.log(rect.left, rect.right)
+    explosion.explode().then(setTimeout(() => ele.remove(), 200))
     // jotaro.bonkImage(ele)
     // // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
     // var explosion = new Explosion();
@@ -346,7 +349,11 @@ var img
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
   console.log(img)
+
   img = document.getElementById('cat')
+  for (let i = 0; i < document.images.length; i++) {
+    NOHORNY(document.images[i])
+  }
 
   defaultCanvas.attach(document.body)
   defaultCanvas.loop()
