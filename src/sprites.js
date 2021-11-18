@@ -9,7 +9,7 @@ class Jotaro {
     // browser.extension.getURL('sprites/jotaro_new.png')
     this.sprite = new Sprite(
       '../dist/sprites/jotaro_new.png',
-      { width: 97, height: 97 }
+      97, 97
     );
 
     this.animations = {
@@ -56,35 +56,48 @@ class Jotaro {
     this.sprite.setAnimation(this.animations.idle)
   }
 
-  punch() {
-    this.sprite.setAnimation(this.animations.punch1)
+  punch(onComplete = null) {
+    this.sprite.setAnimation(this.animations.punch1, onComplete)
   }
 
   // TODO: uh
-  async bonkImage(imgEle) {
+  async bonkImage(imgEle, canvas) {
+    var bonk = new Audio('../dist/sounds/yareyaredaze.ogg')
+    bonk.play()
+    await sleep(25)
     this.run()
     let distance = imgEle.x - this.sprite.dx - (imgEle.x * .10)
     for (let i = 0; i < distance; i += 10) {
       this.sprite.dx = i
       await sleep(25)
     }
-    // Now ora ora attack
-    // alert('ORA ORA ORA ORA ORA')
-    this.punch()
-    await sleep(100)
-    // TODO: kill le image
-    imgEle.style.backgroundImage = new URL(imgEle.src)
-    imgEle.style.boxShadow = "inset 0 0 99999px rgba(0, 120, 255, 0.5);"
+
+    // オラオラオラオラオラオラオラオラオラオラオラオラっ！
+    this.punch(() => { })
+    var ora = new Audio('../dist/sounds/ORA.ogg')
+    ora.addEventListener('ended', () => {
+      let explosion = new Explosion();
+      defaultCanvas.addSprite(explosion)
+      explosion.sprite.dx = imgEle.x
+      explosion.sprite.dy = imgEle.y
+      explosion.explode().then(() => {
+        let bonk = new Audio('../dist/sounds/bonk.ogg')
+        bonk.play()
+        this.idle()
+        imgEle.remove()
+      })
+    })
+    ora.play()
   }
 }
 
 class Sprite {
   // imgSrc = path to image file.
-  // dimensions = {width: int, height: int}
-  constructor(imgSrc, dimensions) {
+  constructor(imgSrc, width, height) {
     this.imgSrc = imgSrc
 
-    this.dimensions = dimensions
+    this.width = width
+    this.height = height
 
     this.sx = 0
     this.sy = 0
@@ -107,17 +120,21 @@ class Sprite {
       // sx, sy - we would change sx to change the active sprite
       this.sx, this.sy,
       // sWidth, sHeight (the sprite animation size)
-      this.dimensions.width, this.dimensions.height,
+      this.width, this.height,
       // we would use dx to move the sprite horizontal across the canvas.
       // dx, dy
       this.dx, this.dy,
       // dWidth, dHeight (the sprite animation size)
-      this.dimensions.width, this.dimensions.height,
+      this.width, this.height,
     )
   }
 
-  setAnimation(animation, active = true) {
+  setAnimation(animation, onComplete = null, active = true) {
     this.animation = animation
+    // TODO: This overrides the underlying animation onComplete
+    // and will likely have weird side effects.
+    if (onComplete)
+      this.animation.onComplete = onComplete
     this.animating = active
   }
 
@@ -167,9 +184,9 @@ class SpriteAnimation {
   }
 
   reset() {
-      this.x = this.xStart
-      if(this.onComplete)
-        this.onComplete()
+    this.x = this.xStart
+    if (this.onComplete)
+      this.onComplete()
   }
 }
 
@@ -232,18 +249,22 @@ class DefaultCanvas {
 function makeImgBonkable(ele) {
   ele.style.cursor = 'pointer'
   ele.addEventListener('click', (e) => {
-    // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
-    explosion.sprite.dx = e.x - explosion.sprite.dimensions.width / 2
-    explosion.sprite.dy = e.y - explosion.sprite.dimensions.height / 2
-    explosion.explode()
-    var bonk = new Audio('../dist/sounds/bonk.ogg')
-    bonk.play()
+    jotaro.bonkImage(ele)
+    // // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
+    // var explosion = new Explosion();
+    // defaultCanvas.addSprite(explosion)
+    // explosion.sprite.dx = e.x - explosion.sprite.width / 2
+    // explosion.sprite.dy = e.y - explosion.sprite.height / 2
+    // // TODO: Clean up explosion object afterwards.
+    // explosion.explode()
+    // var bonk = new Audio('../dist/sounds/bonk.ogg')
+    // bonk.play()
   });
 }
 
 class Explosion {
   constructor() {
-    this.sprite = new Sprite('../dist/sprites/explosion-edit.png', { width: 165, height: 165 })
+    this.sprite = new Sprite('../dist/sprites/explosion-edit.png', 165, 165)
   }
 
   render(canvas) {
@@ -253,7 +274,7 @@ class Explosion {
     this.sprite.render(canvas)
   }
 
-  explode() {
+  async explode() {
     this.sprite.setAnimation(
       new SpriteAnimation({
         xStart: 0,
@@ -271,9 +292,7 @@ class Explosion {
 
 var defaultCanvas = new DefaultCanvas()
 var jotaro = new Jotaro();
-var explosion = new Explosion();
 defaultCanvas.addSprite(jotaro)
-defaultCanvas.addSprite(explosion)
 var img
 document.addEventListener('DOMContentLoaded', function() {
   console.log('やれやれだぜ。')
@@ -288,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
   makeImgBonkable(img)
   console.log(img)
 
-  jotaro.bonkImage(img)
+  // jotaro.bonkImage(img)
 })
 
 async function asdf() {
