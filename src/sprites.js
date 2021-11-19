@@ -367,7 +367,7 @@ defaultCanvas.addSprite(cheems)
 var jotaro = new Jotaro();
 defaultCanvas.addSprite(jotaro)
 var img
-window.addEventListener('load', (_) =>{
+window.addEventListener('load', (_) => {
   console.log('やれやれだぜ。')
 
   img = document.getElementById('cat')
@@ -375,6 +375,20 @@ window.addEventListener('load', (_) =>{
     // jotaroBonk(document.images[i])
     NOHORNY(document.images[i])
   }
+
+
+  ["div", "body", "td"].forEach((name) => {
+    let elements = document.getElementsByTagName(name);
+    for (let i = 0; i < elements.length; i++) {
+      let e = elements[i];
+      if (e.style.background.match("url")) {
+        NOHORNY(e)
+      }
+      if (e.style.backgroundImage.match("url")) {
+        NOHORNY(e)
+      }
+    }
+  });
 
   defaultCanvas.attach(document.body)
   defaultCanvas.loop()
