@@ -61,12 +61,13 @@ class Jotaro {
   }
 
   // TODO: uh
-  async bonkImage(imgEle, canvas) {
-    var bonk = new Audio(browser.extension.getURL('../dist/sounds/yareyaredaze.ogg'))
-    bonk.play()
+  async bonkImage(imgEle) {
+    var yare = new Audio(browser.extension.getURL('sounds/yareyaredaze.ogg'))
+    yare.play()
     await sleep(25)
     this.run()
-    let distance = imgEle.x - this.sprite.dx - (imgEle.x * .10)
+    let rect = imgEle.getBoundingClientRect()
+    let distance = rect.left - this.sprite.dx - (rect.left * .10)
     for (let i = 0; i < distance; i += 10) {
       this.sprite.dx = i
       await sleep(25)
@@ -75,14 +76,14 @@ class Jotaro {
     // オラオラオラオラオラオラオラオラオラオラオラオラっ！
     this.punch(() => { })
 
-    var ora = new Audio(browser.extension.getURL('../dist/sounds/ORA.ogg'))
+    var ora = new Audio(browser.extension.getURL('sounds/ORA.ogg'))
     ora.addEventListener('ended', () => {
       let explosion = new Explosion();
       defaultCanvas.addSprite(explosion)
-      explosion.sprite.dx = imgEle.x
-      explosion.sprite.dy = imgEle.y
+      explosion.sprite.dx = rect.left
+      explosion.sprite.dy = rect.top
       explosion.explode().then(() => {
-        let bonk = new Audio('../dist/sounds/bonk.ogg')
+        let bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
         bonk.play()
         this.idle()
         imgEle.remove()
@@ -314,7 +315,20 @@ class Explosion {
 
 function NOHORNY(ele) {
   ele.style.cursor = 'pointer'
+  ele.removeAttribute('onclick')
+
+  if (ele.parentElement.nodeName == 'A') {
+    ele.parentElement.removeAttribute('onclick')
+    ele.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      return false;
+    })
+    // ele.parentElement.removeEventListener("click")
+  }
+
   ele.addEventListener('click', (e) => {
+    e.preventDefault();
     let rect = ele.getBoundingClientRect()
     cheems.sprite.dx = rect.left - (rect.top * .10)
     cheems.sprite.dy = rect.top - (rect.top * .10)
@@ -322,20 +336,27 @@ function NOHORNY(ele) {
     let explosion = new Explosion();
     defaultCanvas.addSprite(explosion)
     explosion.sprite.dx = rect.left + 100
-    explosion.sprite.dy = rect.top 
-    console.log(rect.left, rect.right)
-    explosion.explode().then(setTimeout(() => ele.remove(), 200))
-    // jotaro.bonkImage(ele)
-    // // var bonk = new Audio(browser.extension.getURL('sounds/bonk.ogg'))
-    // var explosion = new Explosion();
-    // defaultCanvas.addSprite(explosion)
-    // explosion.sprite.dx = e.x - explosion.sprite.width / 2
-    // explosion.sprite.dy = e.y - explosion.sprite.height / 2
-    // // TODO: Clean up explosion object afterwards.
-    // explosion.explode()
-    // var bonk = new Audio('../dist/sounds/bonk.ogg')
-    // bonk.play()
+    explosion.sprite.dy = rect.top
+    explosion.explode().then(setTimeout(() => {
+      ele.remove()
+      if (ele.parentElement.nodeName == 'A')
+        ele.parentElement.remove()
+    }, 200))
   });
+}
+
+function jotaroBonk(ele) {
+  ele.style.cursor = 'pointer'
+  ele.removeAttribute('onclick')
+  if (ele.parentElement.nodeName == "a")
+    ele.parentElement.removeAttribute('onclick')
+
+  console.log(ele.parentElement)
+  console.log(ele.parentElement)
+
+  ele.addEventListener('click', (e) => {
+    jotaro.bonkImage(ele)
+  })
 }
 
 
@@ -346,12 +367,12 @@ defaultCanvas.addSprite(cheems)
 var jotaro = new Jotaro();
 defaultCanvas.addSprite(jotaro)
 var img
-document.addEventListener('DOMContentLoaded', function() {
+window.addEventListener('load', (_) =>{
   console.log('やれやれだぜ。')
-  console.log(img)
 
   img = document.getElementById('cat')
   for (let i = 0; i < document.images.length; i++) {
+    // jotaroBonk(document.images[i])
     NOHORNY(document.images[i])
   }
 
@@ -361,7 +382,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   img = document.getElementById('cat')
   NOHORNY(img)
-  console.log(img)
 
   // jotaro.bonkImage(img)
 })
