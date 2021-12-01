@@ -24,3 +24,8 @@ For FireFox at least, I haven't tested other browsers.
 # License 
 
 See the LICENSE file for details.
+
+
+# やれやれだぜ
+
+[click to defeat Dio](https://www.youtube.com/watch?v=q_OhgBAqR6s)
